@@ -1,0 +1,360 @@
+% Author: Kinash Daria <xkinas00@stud.fit.vutbr.cz>
+
+\documentclass[a4paper, 11pt]{article}
+
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{geometry} \geometry{verbose,a4paper,tmargin=2cm,bmargin=2cm,lmargin=2.5cm,rmargin=1.5cm, right=2.5cm}
+\usepackage{times}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{rotating}
+\usepackage{xcolor}
+
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    captionpos=b,
+}
+
+
+\usepackage[unicode]{hyperref}
+\usepackage[table,xcdraw]{xcolor}
+\hypersetup{
+    colorlinks = false,
+    hypertexnames = false,
+    citecolor = blue
+}
+\usepackage{pdflscape}
+
+\begin{document}
+
+    \begin{titlepage}
+        \begin{center}
+            \includegraphics[width=0.77\linewidth]{figures/logo.pdf} \\
+
+            \vspace{\stretch{0.982}}
+
+            \Huge\textbf{ IMP}\\
+            \Huge Microcontroller power management
+            \vspace{\stretch{0.9}}
+
+            \vspace{\stretch{0.9}}
+        \end{center}
+
+        \vfill
+
+        \begin{minipage}{0.4\textwidth}
+            \Large \today
+        \end{minipage}
+        \begin{minipage}[b]{0.5\textwidth}
+            \begin{flushright}
+                \Large
+                Daria Kinash (xkinas00) \\
+            \end{flushright}
+        \end{minipage}
+    \end{titlepage}
+
+
+
+    % Content %
+    \pagenumbering{arabic}
+    \setcounter{page}{1}
+    \tableofcontents
+    \newpage
+
+    \section{Introduction}
+
+    \subsection{Topic and Motivation}
+    Embedded systems are essential in modern technology, powering devices from smart home appliances to industrial machines. These systems are designed to perform specific tasks efficiently, reliably, and with minimal power consumption. Microcontrollers, the heart of embedded systems, can operate in different power modes such as Run, Light Sleep, and Deep Sleep, depending on the task requirements.
+    
+    This project aims to explore and demonstrate how the ESP32 microcontroller (used in the Wemos D1 R32 development board) transitions between these power modes. It will also show how these transitions affect important resources like the CPU and GPIO. The topic is important because it helps optimize power usage while maintaining functionality, which is critical for battery-powered and energy-efficient devices.
+    
+    \subsection{Expected Goals and Benefits}
+    The project’s goal is to implement a simple embedded application that shows how the ESP32 manages power modes. The expected goals are:
+    \begin{itemize}
+    \item Understanding and demonstrating transitions between Run, Light Sleep, and Deep Sleep modes.
+    \item Highlighting the impact of power mode transitions on system resources like CPU and GPIO.
+    \end{itemize}
+    
+    The benefits of this project are twofold. First, it provides a basic understanding of low-power design principles, which can be applied to real-world embedded systems. Second, it shows how the ESP32 can be used to reduce power consumption in devices where saving energy is essential.
+    
+    \subsection{Expected Features}
+    The solution includes the following key features:
+    \begin{enumerate}
+        \item \textbf{Power Mode Demonstration}:
+        \begin{itemize}
+            \item Switching between Run, Light Sleep, and Deep Sleep modes.
+            \item Utilizing the built-in LED on the Wemos D1 R32 to visually indicate mode transitions.
+        \end{itemize}
+        \item \textbf{Resource Impact Analysis}:
+        \begin{itemize}
+            \item Demonstrating CPU behavior and performance during each mode.
+            \item Analyzing GPIO state and functionality across the modes.
+        \end{itemize}
+        \item \textbf{Wake-Up Mechanisms}:
+        \begin{itemize}
+            \item Timer-based wake-up from Light Sleep mode.
+            \item Timer-based wake-up from Deep Sleep mode.
+        \end{itemize}
+    \end{enumerate}
+
+    
+    \subsection{Use Cases}
+    This project’s demonstration can be applied to these real-world scenarios:
+    \begin{enumerate}
+    \item \textbf{Battery-Powered Devices}:
+    \begin{itemize}
+    \item Reducing power consumption in devices like sensors, wearables, or portable gadgets.
+    \end{itemize}
+    \item \textbf{Smart Home Systems}:
+    \begin{itemize}
+    \item Efficiently managing resources in devices like smart thermostats, lighting, and security systems.
+    \end{itemize}
+    \item \textbf{IoT Applications}:
+    \begin{itemize}
+    \item Extending the battery life of IoT nodes while keeping them responsive through wake-up mechanisms.
+    \end{itemize}
+    \end{enumerate}
+    
+    \subsection{Verification and Significance}
+    To verify the solution, the following steps will be taken:
+    \begin{itemize}
+    \item Checking LED behavior and console logs to ensure proper transitions between power modes.
+    \item Confirming wake-up mechanisms.
+    \end{itemize}
+
+    \section{Analysis and Proposal of the Solution}
+
+    \subsection{Operating Modes}
+    The ESP32 microcontroller supports multiple power modes to optimize energy efficiency while maintaining required functionality. Below is a summary of the key operating modes and their properties:
+    
+    \begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{power_consumption.png}
+    \caption{Power Consumption by Operating Modes (Extracted from ESP32 Datasheet)}
+    \label{fig:power_modes}
+    \end{figure}
+    
+    \begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{active_mode.png}
+    \caption{Current Consumption Depending on RF Modes (Extracted from ESP32 Datasheet)}
+    \label{fig:rf_modes}
+    \end{figure}
+    
+    \newpage
+    \subsubsection*{Run Mode}
+    \begin{itemize}
+        \item \textbf{Description:} In Run Mode, the CPU operates at full performance, with all peripherals such as Wi-Fi, Bluetooth, GPIO, and ADC fully active. This mode is ideal for executing tasks requiring high computational power or active communication.
+        \item \textbf{Power Consumption:} 20–240 mA (depending on activity, such as data transmission or reception).
+        \item \textbf{Resource Behavior:}
+        \begin{itemize}
+            \item \textbf{CPU:} Fully active and capable of executing tasks.
+            \item \textbf{GPIO:} Fully operational for input/output tasks.
+            \item \textbf{RTC:} Active for timekeeping and task scheduling.
+            \item \textbf{Memory:} Fully accessible for read/write operations.
+            \item \textbf{Wi-Fi/Bluetooth:} Fully operational for wireless communication.
+        \end{itemize}
+        \item \textbf{Transitions:}
+        \begin{itemize}
+            \item \textbf{To Light Sleep:} Quick transition (low latency, typically within milliseconds) when the system is idle or no longer requires full processing.
+            \item \textbf{To Deep Sleep:} Requires additional preparation, as most components will power down.
+        \end{itemize}
+        \item \textbf{Transition Cost:} Minimal latency when transitioning to sleep modes.
+    \end{itemize}
+    
+    \subsubsection*{Modem Sleep Mode}
+    \begin{itemize}
+        \item \textbf{Description:} The CPU remains powered, but the wireless RF module (Wi-Fi/Bluetooth) is turned off to save power. Suitable for background processing tasks without active communication.
+        \item \textbf{Power Consumption:} 20–68 mA depending on the CPU clock speed (80–240 MHz).
+        \item \textbf{Resource Behavior:}
+        \begin{itemize}
+            \item \textbf{CPU:} Fully operational for task execution.
+            \item \textbf{GPIO:} Fully functional for input/output operations.
+            \item \textbf{RTC:} Active for timekeeping and event scheduling.
+            \item \textbf{Wi-Fi/Bluetooth:} Disabled to reduce power consumption.
+        \end{itemize}
+        \item \textbf{Transitions:} Quick and seamless transitions between Run and Modem Sleep Mode.
+        \item \textbf{Transition Cost:} Very low latency, suitable for real-time applications.
+    \end{itemize}
+    
+    \subsubsection*{Light Sleep Mode}
+    \begin{itemize}
+        \item \textbf{Description:} The CPU is halted to save power, while peripherals such as RTC and GPIO remain active. This mode is used for periodic wake-ups or event-driven tasks.
+        \item \textbf{Power Consumption:} 0.8 mA.
+        \item \textbf{Resource Behavior:}
+        \begin{itemize}
+            \item \textbf{CPU:} Halted, resumes operation upon wake-up.
+            \item \textbf{GPIO:} Active, can trigger wake-up events.
+            \item \textbf{RTC:} Active, supports periodic wake-ups or time-based tasks.
+            \item \textbf{Memory:} Retained, no data loss during this mode.
+        \end{itemize}
+        \item \textbf{Transitions:}
+        \begin{itemize}
+            \item \textbf{To Run Mode:} Triggered by a timer or external event.
+        \end{itemize}
+        \item \textbf{Transition Cost:} Low latency, suitable for scenarios requiring periodic operation.
+    \end{itemize}
+    
+    \subsubsection*{Deep Sleep Mode}
+    \begin{itemize}
+        \item \textbf{Description:} The CPU and most peripherals are powered down, leaving only the RTC and ULP (Ultra Low Power) coprocessor active. This mode is ideal for applications that require long idle periods with infrequent wake-ups.
+        \item \textbf{Power Consumption:} 10 \textmu A (extremely low).
+        \item \textbf{Resource Behavior:}
+        \begin{itemize}
+            \item \textbf{CPU:} Powered down and inactive.
+            \item \textbf{GPIO:} Configurable as wake-up sources.
+            \item \textbf{RTC:} Active for timer-based wake-ups.
+            \item \textbf{Memory:} Limited retention; data in RAM is lost unless explicitly stored in RTC memory.
+        \end{itemize}
+        \item \textbf{Transitions:}
+        \begin{itemize}
+            \item \textbf{To Run Mode:} Triggered by external events or timers.
+        \end{itemize}
+        \item \textbf{Transition Cost:} Higher latency due to the need to reinitialize peripherals and restart the CPU.
+    \end{itemize}
+    
+    \subsubsection*{Hibernation Mode}
+    \begin{itemize}
+        \item \textbf{Description:} Only the RTC remains active, consuming the least amount of power. Suitable for long-term inactivity with very rare wake-ups.
+        \item \textbf{Power Consumption:} 5 \textmu A.
+        \item \textbf{Resource Behavior:}
+        \begin{itemize}
+            \item \textbf{CPU:} Powered down and inactive.
+            \item \textbf{RTC:} Active for timekeeping and wake-up events.
+            \item \textbf{Memory:} No retention; all data in RAM is lost.
+        \end{itemize}
+        \item \textbf{Transitions:}
+        \begin{itemize}
+            \item \textbf{To Run Mode:} Triggered by an RTC alarm or external wake-up source.
+        \end{itemize}
+        \item \textbf{Transition Cost:} High latency due to the need to fully restart the system.
+    \end{itemize}
+    
+    \subsection{Application Components and Interactions}
+
+    \textbf{Key Equipment:}
+    \begin{itemize}
+        \item \textbf{Internal Peripherals:}
+        \begin{itemize}
+            \item \textbf{GPIO:} Used for controlling the built-in LED to indicate system activity and transitions.
+            \item \textbf{RTC Timer:} Configured to enable periodic wake-ups from Light Sleep and Deep Sleep modes, ensuring power-efficient functionality.
+        \end{itemize}
+        \item \textbf{External Peripherals:}
+        \begin{itemize}
+            \item None required, as the application use the built-in features of the ESP32 microcontroller.
+        \end{itemize}
+    \end{itemize}
+    
+    \textbf{Interconnections and Control:}
+    \begin{itemize}
+        \item The \textbf{GPIO} is used to control the built-in LED. For example, different blinking patterns are programmed to represent Run, Light Sleep, and Deep Sleep modes.
+        \item The \textbf{RTC Timer} is configured as the primary wake-up source. It wakes the system from Light Sleep after 10 seconds and from Deep Sleep after 5 seconds. 
+        \item Power mode transitions and wake-up configurations are managed dynamically using the ESP-IDF framework. 
+        \item All interactions are handled through software using the ESP32’s internal peripherals and ESP-IDF APIs. 
+    \end{itemize}
+
+    \subsection{API Usage}
+    \begin{itemize}
+        \item \texttt{driver/gpio.h:} For configuring and controlling the built-in LED.
+        \item \texttt{esp\_sleep.h:} For configuring and managing power mode transitions and RTC wake-up sources.
+        \item \texttt{freertos/FreeRTOS.h}, \texttt{freertos/task.h:} For creating delays, managing task execution, and logging CPU utilization statistics.
+        \item \texttt{esp\_timer.h:} Used to simulate CPU workload and measure execution time, highlighting the CPU's activity in Run Mode.
+    \end{itemize}
+
+    \section{Own solution}
+    \subsection{Behavior and Implementation}
+    
+    The system demonstrates transitions between three power modes (Run, Light Sleep, and Deep Sleep) and the impact on resources like CPU and GPIO. Below is a detailed description of each mode's behavior and implementation:
+    
+    \begin{enumerate}
+        \item \textbf{Run Mode:}
+        The system starts in Run Mode, where the CPU is fully active. During this mode:
+        \begin{itemize}
+            \item The LED blinks once to visually indicate the active state.
+            \item The system performs active tasks, such as simulating a CPU workload and logging runtime statistics for CPU utilization.
+            \item This mode demonstrates how the CPU and GPIO are fully operational. After 2 seconds, the system transitions to Light Sleep Mode.
+        \end{itemize}
+    
+        \item \textbf{Light Sleep Mode:}
+        After completing tasks in Run Mode, the system enters Light Sleep Mode. In this mode:
+        \begin{itemize}
+            \item The CPU halts, but peripherals like RTC and GPIO remain active for event-driven tasks.
+            \item The LED blinks five times to indicate the transition into Light Sleep.
+            \item The RTC timer is configured to wake the system after 10 seconds.
+            \item Upon waking up, the LED blinks twice to signal the return to an active state. This step demonstrates the use of the RTC as a low-power wake-up source and the CPU resuming from a halted state.
+        \end{itemize}
+    
+        \item \textbf{Deep Sleep Mode:}
+        Following the Light Sleep wake-up, the system transitions to Deep Sleep Mode. Here:
+        \begin{itemize}
+            \item The LED blinks three times to indicate the preparation for Deep Sleep.
+            \item The CPU and most peripherals are powered down, leaving only the RTC active.
+            \item The RTC timer is configured to wake the system after 5 seconds. This demonstrates the lowest power consumption scenario, where the CPU is entirely powered off and resumes operation only upon a timer-based wake-up.
+        \end{itemize}
+    \end{enumerate}
+
+    \subsection{System Output}
+    
+    To validate the implementation, the system behavior was monitored using the ESP-IDF serial monitor. Below is an example output captured during a test run:
+    
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.95\textwidth]{monitor.png}
+        \caption{System Output Captured from ESP-IDF Monitor}
+        \label{fig:system_output}
+    \end{figure}
+
+    \begin{itemize}
+        \item The system starts in \textbf{Run Mode}, where it performs a simulated CPU workload. The total time taken by the workload and the result of the computation are displayed. CPU utilization statistics are also logged, showing the distribution of time spent by various tasks.
+        \item The system then transitions to \textbf{Light Sleep Mode}. In this mode the CPU is halted, as reflected in the significantly lower activity of the main task. CPU utilization statistics confirm that the system remains idle, with minimal power usage. Upon waking up from Light Sleep after 10 seconds, the system logs the wake-up event and transitions to Deep Sleep.
+        \item In \textbf{Deep Sleep Mode}, the CPU is entirely powered down. The system resets upon waking, as shown by the \texttt{DEEPSLEEP\_RESET} in the monitor output.
+    \end{itemize}
+
+    \subsection{Problems Encountered and Their Resolution}
+    
+    \textbf{Problem: Maintaining Wake-Up Sources After Sleep Transitions}  
+    Initially, the system encountered issues where wake-up sources were cleared upon waking from Light Sleep or Deep Sleep. This behavior caused failures during subsequent attempts to re-enter sleep modes.
+    
+    \textbf{Solution: Reconfiguring Wake-Up Sources}  
+    The issue was resolved by dynamically reconfiguring wake-up sources before each sleep mode transition. Specifically \texttt{configure\_wakeup\_sources\_light\_sleep()} and \texttt{configure\_wakeup\_sources\_deep\_sleep()} were introduced to ensure RTC wake-up sources were correctly set for Light Sleep and Deep Sleep, respectively.
+
+    \newpage
+    \section*{Final Evaluation}
+    The solution successfully demonstrates the following features:
+    \begin{itemize}
+    \item Smooth transitions between Run, Light Sleep, and Deep Sleep modes.
+    \item Use of the built-in LED to indicate power mode transitions and wake-up states.
+    \item Reliable wake-up mechanisms using timers for both Light Sleep and Deep Sleep modes.
+    \end{itemize}
+    
+    \textbf{Fulfillment of Objectives:}  
+    The project fulfills its primary objective of demonstrating the ESP32's power-saving capabilities and resource utilization. By implementing and testing transitions between power modes, it provides a practical understanding of low-power design principles. The modular nature of the solution allows for future enhancements, such as integrating additional wake-up sources or external peripherals for expanded functionality.
+    
+    \textbf{Self-Evaluation:}
+    The project meets the objectives of showing ESP32 power modes and transitions. I feel the project helped me develop a solid understanding of power management in embedded systems. However, I recognize there is room to explore additional advanced features like the ULP coprocessor or integrating more peripherals.
+    
+    \textbf{Overall Evaluation:}
+    The solution fulfills the assignment's requirements by effectively demonstrating energy-efficient design principles in embedded systems. Overall, this project was a valuable learning experience and a good demonstration of low-power embedded design with the ESP32.
+    
+    \section*{Use of Information Sources}
+    The following resources were critical in designing and implementing the solution:
+    \begin{itemize}
+        \item Espressif Systems. \textit{ESP32 Technical Reference Manual}. Available at: \url{https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf}.
+        \item Random Nerd Tutorials. \textit{ESP32 Deep Sleep with Arduino IDE}. Available at: \url{https://randomnerdtutorials.com/esp32-deep-sleep-arduino-ide-wake-up-sources/}.
+        \item ESP-IDF Documentation. Available at: \url{https://docs.espressif.com/projects/esp-idf/en/latest/}.
+    \end{itemize}
+
+\end{document}
